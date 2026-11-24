@@ -9,3 +9,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 require __DIR__.'/settings.php';
+
+
+Route::get('/student/{student}', [StudentController::class, 'show'])
+    ->name('student.show');
