@@ -114,7 +114,7 @@ php artisan migrate:fresh --seed
 
 ---
 
-## 6. Commandes Laravel utiles
+## 6. Commandes Laravel Utiles
 
 ### 6.1. Gestion du cache
 
