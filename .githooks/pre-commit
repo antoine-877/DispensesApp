@@ -1,0 +1,13 @@
+#!/bin/sh
+
+echo "Formatage automatique avec Laravel Pint..."
+
+php vendor/bin/pint --dirty || exit 1
+
+if ! git diff --quiet -- '*.php'; then
+    echo "Pint a modifie des fichiers PHP."
+    echo "Verifiez les modifications avant de refaire le commit."
+    exit 1
+fi
+
+echo "Verification terminee."
