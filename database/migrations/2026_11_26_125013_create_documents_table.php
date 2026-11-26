@@ -13,6 +13,15 @@ return new class extends Migration
     {
         Schema::create('documents', function (Blueprint $table) {
             $table->id();
+
+            $table->foreignId('dispense_request_id')
+                ->constrained('dispense_requests')
+                ->cascadeOnDelete();
+
+            $table->string('type');
+            $table->string('file_path');
+            $table->timestamp('uploaded_at');
+
             $table->timestamps();
         });
     }

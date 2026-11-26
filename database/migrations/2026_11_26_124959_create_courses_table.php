@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('courses', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('section_id')->constrained('sections');
+            $table->string('name');
+            $table->unsignedInteger('session_count');
             $table->timestamps();
         });
     }
