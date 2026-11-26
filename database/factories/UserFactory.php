@@ -25,12 +25,37 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
+            'role' => 'student',
+            'first_name' => fake()->firstName(),
+            'last_name' => fake()->lastName(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'address' => fake()->address(),
             'remember_token' => Str::random(10),
         ];
+    }
+
+    /**
+     * Indicate that the user is a teacher.
+     */
+    public function teacher(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'teacher',
+            'address' => null,
+        ]);
+    }
+
+    /**
+     * Indicate that the user is a coordinator.
+     */
+    public function coordinator(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'coordinator',
+            'address' => null,
+        ]);
     }
 
     /**
