@@ -44,7 +44,6 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'role' => 'teacher',
             'address' => null,
-            'phone' => null,
         ]);
     }
 
@@ -56,7 +55,6 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'role' => 'coordinator',
             'address' => null,
-            'phone' => null,
         ]);
     }
 
