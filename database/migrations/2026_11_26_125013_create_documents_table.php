@@ -16,7 +16,7 @@ return new class extends Migration
 
             $table->foreignId('dispense_request_id')
                 ->constrained('dispense_requests')
-                ->cascadeOnDelete();
+                ->restrictOnDelete();
 
             $table->string('type');
             $table->string('file_path');

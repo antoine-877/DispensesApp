@@ -9,10 +9,18 @@ class CoordinatorSeeder extends Seeder
 {
     public function run(): void
     {
-        User::factory()->coordinator()->create([
+        $user = User::firstOrNew(['email' => 'sophie.marchal@example.com']);
+
+        if (! $user->exists) {
+            $user->password = 'password';
+            $user->email_verified_at = now();
+        }
+
+        $user->forceFill([
+            'name' => 'Sophie Marchal',
             'first_name' => 'Sophie',
             'last_name' => 'Marchal',
-            'email' => 'sophie.marchal@example.com',
-        ]);
+            'role' => 'coordinator',
+        ])->save();
     }
 }

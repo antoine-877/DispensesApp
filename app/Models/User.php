@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -17,8 +18,9 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int|null $section_id
  * @property string $role
- * @property string $first_name
- * @property string $last_name
+ * @property string|null $first_name
+ * @property string|null $last_name
+ * @property string $name
  * @property string $email
  * @property string|null $national_number
  * @property string|null $address
@@ -33,13 +35,13 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Fillable([
-    'section_id',
+    'name',
     'first_name',
     'last_name',
     'email',
     'password',
-    'national_number',
     'address',
+    'phone',
 ])]
 #[Hidden([
     'password',
@@ -53,11 +55,6 @@ class User extends Authenticatable implements MustVerifyEmail
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -74,16 +71,26 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(Section::class);
     }
 
-    // étudiant : ses demandes
+    // Étudiant : ses demandes de dispense
     public function dispenseRequests(): HasMany
     {
         return $this->hasMany(DispenseRequest::class, 'student_id');
     }
 
-    // prof : ses cours
-    public function taughtCourses(): HasMany
+    // Professeur : ses cours
+    public function taughtCourses(): BelongsToMany
     {
-        return $this->hasMany(Course::class, 'teacher_id');
+        return $this->belongsToMany(
+            Course::class,
+            'course_teacher',
+            'teacher_id',
+            'course_id'
+        );
+    }
+
+    public function dispenseRequestOpinions(): HasMany
+    {
+        return $this->hasMany(DispenseRequestOpinion::class, 'teacher_id');
     }
 
     // Rôles

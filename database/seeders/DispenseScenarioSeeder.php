@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Course;
 use App\Models\DispenseRequest;
+use App\Models\DispenseRequestOpinion;
 use App\Models\Document;
 use App\Models\Section;
 use App\Models\User;
@@ -14,57 +15,41 @@ class DispenseScenarioSeeder extends Seeder
 {
     public function run(): void
     {
-        $section = Section::create(['name' => 'Informatique']);
+        $section = Section::firstOrCreate(['name' => 'Informatique']);
 
-        $olivier = User::factory()->teacher()->create([
-            'first_name' => 'Olivier',
-            'last_name' => 'Lardinois',
-            'email' => 'olivier.lardinois@example.com',
-        ]);
+        $olivier = $this->user('teacher', 'Olivier', 'Lardinois', 'olivier.lardinois@example.com');
+        $camille = $this->user('student', 'Camille', 'Dethier', 'camille.dethier@example.com');
+        $thomas = $this->user('student', 'Thomas', 'Collignon', 'thomas.collignon@example.com');
 
-        $camille = User::factory()->create([
+        $course = Course::firstOrCreate([
             'section_id' => $section->id,
-            'first_name' => 'Camille',
-            'last_name' => 'Dethier',
-            'email' => 'camille.dethier@example.com',
-        ]);
-
-        $thomas = User::factory()->create([
-            'section_id' => $section->id,
-            'first_name' => 'Thomas',
-            'last_name' => 'Collignon',
-            'email' => 'thomas.collignon@example.com',
-        ]);
-
-        $course = Course::create([
-            'section_id' => $section->id,
-            'teacher_id' => $olivier->id,
             'name' => 'Initiation aux bases de données',
+        ], [
+            'session_count' => 24,
         ]);
+        $course->teachers()->syncWithoutDetaching([$olivier->id]);
 
-        // Camille : parcours terminé, dispense accordée
-        $camilleRequest = DispenseRequest::create([
-            'student_id' => $camille->id,
-            'course_id' => $course->id,
+        $camilleRequest = $this->request($camille, $course, [
+            'section_id' => $section->id,
             'status' => 'accepted',
             'basis' => 'Cours similaire réussi avec 15/20.',
-            // dernier dépôt, après l'ajout du descriptif
             'submitted_at' => now()->subDays(8),
             'completed_at' => now()->subDays(7),
-            'opinion_type' => 'favorable',
-            'opinion_comment' => 'Le cours suivi couvre les acquis attendus.',
-            'opinion_given_at' => now()->subDays(2),
-            'decision_reason' => 'Dispense accordée après avis favorable.',
+            'decision_motif' => 'Dispense accordée après avis favorable.',
             'decided_at' => now()->subDay(),
+        ]);
+
+        $this->opinion($camilleRequest, $olivier, [
+            'opinion_type' => 'favorable',
+            'motif' => 'Le cours suivi couvre les acquis attendus.',
+            'given_at' => now()->subDays(2),
         ]);
 
         $this->addDocument($camilleRequest, 'transcript', 'camille-releve-de-cotes', 10);
         $this->addDocument($camilleRequest, 'course_description', 'camille-descriptif-cours', 8);
 
-        // Thomas : même cours, demande seulement déposée
-        $thomasRequest = DispenseRequest::create([
-            'student_id' => $thomas->id,
-            'course_id' => $course->id,
+        $thomasRequest = $this->request($thomas, $course, [
+            'section_id' => $section->id,
             'status' => 'submitted',
             'basis' => 'Cours similaire suivi précédemment.',
             'submitted_at' => now()->subDay(),
@@ -73,17 +58,63 @@ class DispenseScenarioSeeder extends Seeder
         $this->addDocument($thomasRequest, 'transcript', 'thomas-releve-de-cotes', 1);
     }
 
+    private function user(string $role, string $firstName, string $lastName, string $email): User
+    {
+        $user = User::firstOrNew(['email' => $email]);
+
+        if (! $user->exists) {
+            $user->password = 'password';
+            $user->email_verified_at = now();
+        }
+
+        $user->forceFill([
+            'name' => "{$firstName} {$lastName}",
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'role' => $role,
+        ])->save();
+
+        return $user;
+    }
+
+    /** @param array<string, mixed> $attributes */
+    private function request(User $student, Course $course, array $attributes): DispenseRequest
+    {
+        $request = DispenseRequest::firstOrNew([
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'basis' => $attributes['basis'],
+        ]);
+        $request->forceFill([
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            ...$attributes,
+        ])->save();
+
+        return $request;
+    }
+
+    /** @param array<string, mixed> $attributes */
+    private function opinion(DispenseRequest $request, User $teacher, array $attributes): void
+    {
+        $opinion = DispenseRequestOpinion::firstOrNew([
+            'dispense_request_id' => $request->id,
+            'teacher_id' => $teacher->id,
+        ]);
+        $opinion->forceFill($attributes)->save();
+    }
+
     private function addDocument(DispenseRequest $request, string $type, string $name, int $daysAgo): void
     {
         // faux fichier texte, juste pour les tests
         $path = "dispenses/demo/{$name}.txt";
         Storage::disk('local')->put($path, "Document fictif : {$name}");
 
-        Document::create([
+        $document = Document::firstOrNew([
             'dispense_request_id' => $request->id,
             'type' => $type,
             'file_path' => $path,
-            'uploaded_at' => now()->subDays($daysAgo),
         ]);
+        $document->forceFill(['uploaded_at' => now()->subDays($daysAgo)])->save();
     }
 }

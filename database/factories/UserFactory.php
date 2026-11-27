@@ -24,16 +24,28 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+
         return [
             'role' => 'student',
-            'first_name' => fake()->firstName(),
-            'last_name' => fake()->lastName(),
+            'name' => "{$firstName} {$lastName}",
+            'first_name' => $firstName,
+            'last_name' => $lastName,
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'national_number' => null,
             'address' => fake()->address(),
             'remember_token' => Str::random(10),
         ];
+    }
+
+    public function withNationalNumber(): static
+    {
+        return $this->state(fn(array $attributes) => [
+            'national_number' => fake()->unique()->numerify('###########'),
+        ]);
     }
 
     /**
@@ -41,7 +53,7 @@ class UserFactory extends Factory
      */
     public function teacher(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'role' => 'teacher',
             'address' => null,
             'phone' => null,
@@ -53,7 +65,7 @@ class UserFactory extends Factory
      */
     public function coordinator(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'role' => 'coordinator',
             'address' => null,
             'phone' => null,
@@ -65,7 +77,7 @@ class UserFactory extends Factory
      */
     public function unverified(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'email_verified_at' => null,
         ]);
     }
