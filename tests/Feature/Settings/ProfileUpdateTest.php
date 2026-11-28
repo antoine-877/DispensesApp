@@ -1,6 +1,11 @@
 <?php
 
+use App\Models\Course;
+use App\Models\DispenseRequest;
+use App\Models\Section;
 use App\Models\User;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 
 test('profile page is displayed', function () {
     $user = User::factory()->create();
@@ -18,7 +23,8 @@ test('profile information can be updated', function () {
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
-            'name' => 'Test User',
+            'first_name' => 'Test',
+            'last_name' => 'User',
             'email' => 'test@example.com',
         ]);
 
@@ -33,13 +39,61 @@ test('profile information can be updated', function () {
     expect($user->email_verified_at)->toBeNull();
 });
 
+test('optional profile fields can be updated and national number is encrypted', function () {
+    $user = User::factory()->create();
+
+    $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'email' => $user->email,
+            'national_number' => '00000000000',
+            'address' => 'Rue du Test 1',
+            'phone' => '0470000000',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $user->refresh();
+
+    expect($user->national_number)->toBe('00000000000')
+        ->and($user->address)->toBe('Rue du Test 1')
+        ->and($user->phone)->toBe('0470000000');
+
+    // en base, la valeur est chiffrée, jamais en clair
+    $raw = DB::table('users')->where('id', $user->id)->value('national_number');
+    expect($raw)->not->toBe('00000000000');
+});
+
+test('role and section cannot be changed from the profile form', function () {
+    $section = Section::create(['name' => 'Informatique']);
+    $user = User::factory()->create();
+
+    $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'first_name' => 'Test',
+            'last_name' => 'User',
+            'email' => $user->email,
+            'role' => 'coordinator',
+            'section_id' => $section->id,
+        ])
+        ->assertSessionHasNoErrors();
+
+    $user->refresh();
+
+    expect($user->role)->toBe('student')
+        ->and($user->section_id)->toBeNull();
+});
+
 test('email is stored in lowercase so the user can still log in', function () {
     $user = User::factory()->create();
 
     $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
-            'name' => 'Test User',
+            'first_name' => 'Test',
+            'last_name' => 'User',
             'email' => 'Test@Example.com',
         ])
         ->assertSessionHasNoErrors();
@@ -65,7 +119,8 @@ test('email must be unique regardless of case', function () {
         ->actingAs($user)
         ->from(route('profile.edit'))
         ->patch(route('profile.update'), [
-            'name' => 'Test User',
+            'first_name' => 'Test',
+            'last_name' => 'User',
             'email' => 'Taken@Example.com',
         ]);
 
@@ -80,7 +135,8 @@ test('email verification status is unchanged when the email address is unchanged
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
-            'name' => 'Test User',
+            'first_name' => 'Test',
+            'last_name' => 'User',
             'email' => $user->email,
         ]);
 
@@ -106,6 +162,23 @@ test('user can delete their account', function () {
 
     $this->assertGuest();
     expect($user->fresh())->toBeNull();
+});
+
+test('a student with dispense requests cannot be deleted', function () {
+    $section = Section::create(['name' => 'Informatique']);
+    $course = Course::create([
+        'section_id' => $section->id,
+        'name' => 'Bases de données',
+        'session_count' => 24,
+    ]);
+    $user = User::factory()->create();
+
+    $request = new DispenseRequest(['course_id' => $course->id, 'basis' => 'Cours similaire.']);
+    $request->student_id = $user->id;
+    $request->save();
+
+    // restrictOnDelete() : la base refuse de supprimer l'étudiant
+    expect(fn() => $user->delete())->toThrow(QueryException::class);
 });
 
 test('correct password must be provided to delete account', function () {
