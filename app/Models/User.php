@@ -6,6 +6,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -18,9 +19,9 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int|null $section_id
  * @property string $role
- * @property string|null $first_name
- * @property string|null $last_name
- * @property string $name
+ * @property string $first_name
+ * @property string $last_name
+ * @property-read string $name  (accesseur calculé, pas de colonne)
  * @property string $email
  * @property string|null $national_number
  * @property string|null $address
@@ -35,11 +36,11 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Fillable([
-    'name',
     'first_name',
     'last_name',
     'email',
     'password',
+    'national_number',
     'address',
     'phone',
 ])]
@@ -55,6 +56,9 @@ class User extends Authenticatable implements MustVerifyEmail
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    // Inclut "name" quand le user est sérialisé (Inertia, JSON)
+    protected $appends = ['name'];
+
     protected function casts(): array
     {
         return [
@@ -62,6 +66,14 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'national_number' => 'encrypted',
         ];
+    }
+
+    // Accesseur calculé : pas de colonne en base
+    protected function name(): Attribute
+    {
+        return Attribute::get(
+            fn() => trim("{$this->first_name} {$this->last_name}")
+        );
     }
 
     // Relations
@@ -88,6 +100,7 @@ class User extends Authenticatable implements MustVerifyEmail
         );
     }
 
+    // Professeur : les avis qu'on lui demande
     public function dispenseRequestOpinions(): HasMany
     {
         return $this->hasMany(DispenseRequestOpinion::class, 'teacher_id');

@@ -16,11 +16,11 @@ return new class extends Migration
 
             $table->foreignId('dispense_request_id')
                 ->constrained('dispense_requests')
-                ->restrictOnDelete();
+                ->cascadeOnDelete();
 
             $table->string('type');
             $table->string('file_path');
-            $table->timestamp('uploaded_at');
+            $table->timestamp('uploaded_at')->useCurrent();
 
             $table->timestamps();
         });

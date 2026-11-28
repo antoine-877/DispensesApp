@@ -16,13 +16,6 @@ class ProfileUpdateRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        $this->merge([
-            'name' => trim(implode(' ', array_filter([
-                $this->input('first_name'),
-                $this->input('last_name'),
-            ], 'is_string'))),
-        ]);
-
         if (config('fortify.lowercase_usernames') && is_string($this->input('email'))) {
             $this->merge(['email' => Str::lower($this->input('email'))]);
         }
@@ -37,7 +30,7 @@ class ProfileUpdateRequest extends FormRequest
     {
         return [
             ...$this->profileRules($this->user()->id),
-            'name' => ['required', 'string', 'max:255'],
+            ...$this->extraProfileRules(),
         ];
     }
 }

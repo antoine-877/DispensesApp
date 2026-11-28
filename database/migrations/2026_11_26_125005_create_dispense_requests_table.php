@@ -9,7 +9,6 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-
     public function up(): void
     {
         Schema::create('dispense_requests', function (Blueprint $table) {
@@ -18,24 +17,21 @@ return new class extends Migration
             // Étudiant qui introduit la demande
             $table->foreignId('student_id')->constrained('users')->restrictOnDelete();
 
-            // Cours et section concernés
-            $table->foreignId('course_id')->constrained('courses');
-            $table->foreignId('section_id')->constrained('sections');
+            // Cours concerné (la section se retrouve via le cours)
+            $table->foreignId('course_id')->constrained('courses')->restrictOnDelete();
 
             // Statut général de la demande
             $table->enum('status', [
-                'draft',
-                'submitted',
-                'incomplete',
-                'awaiting_opinion',
-                'awaiting_decision',
+                'submitted',          // envoyée ou renvoyée à la coordinatrice
+                'incomplete',         // documents manquants, l'étudiant modifie
+                'awaiting_opinion',   // envoyée au prof
+                'awaiting_decision',  // avis rendu à la coordinatrice
                 'accepted',
-                'accepted_with_conditions',
                 'refused',
-            ])->default('draft');
+            ])->default('submitted');
 
             // Informations fournies par l'étudiant
-            $table->text('basis')->nullable();
+            $table->text('basis');
 
             // Gestion des demandes incomplètes
             $table->text('incomplete_reason')->nullable();
@@ -43,17 +39,14 @@ return new class extends Migration
             // Dates de suivi
             $table->timestamp('submitted_at')->nullable();
             $table->timestamp('completed_at')->nullable();
-            $table->timestamp('archived_at')->nullable();
 
             // Décision finale de la coordinatrice
-            $table->text('decision_motif')->nullable();
-            $table->text('decision_conditions')->nullable();
+            $table->text('decision_reason')->nullable();
             $table->timestamp('decided_at')->nullable();
 
             $table->timestamps();
         });
     }
-
 
     /**
      * Reverse the migrations.

@@ -17,7 +17,6 @@ class CoordinatorSeeder extends Seeder
         }
 
         $user->forceFill([
-            'name' => 'Sophie Marchal',
             'first_name' => 'Sophie',
             'last_name' => 'Marchal',
             'role' => 'coordinator',

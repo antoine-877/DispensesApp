@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use Laravel\Fortify\Features;
 
 beforeEach(function () {
@@ -19,8 +20,7 @@ test('new users can register', function () {
         'email' => 'test@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
-        'role' => 'coordinator',
-        'student_number' => 'STUDENT-123',
+        'role' => 'coordinator', // doit être ignoré : le rôle est fixé par le serveur
     ]);
 
     $this->assertAuthenticated();
@@ -28,8 +28,30 @@ test('new users can register', function () {
 
     $this->assertDatabaseHas('users', [
         'email' => 'test@example.com',
+        'first_name' => 'Test',
+        'last_name' => 'User',
         'role' => 'student',
-        'student_number' => null,
         'section_id' => null,
     ]);
+});
+
+test('registration ignores optional profile fields', function () {
+    $this->post(route('register.store'), [
+        'first_name' => 'Test',
+        'last_name' => 'User',
+        'email' => 'test@example.com',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+        'national_number' => '00000000000',
+        'address' => 'Rue du Test 1',
+        'phone' => '0470000000',
+        'section_id' => 1,
+    ]);
+
+    $user = User::where('email', 'test@example.com')->firstOrFail();
+
+    expect($user->national_number)->toBeNull()
+        ->and($user->address)->toBeNull()
+        ->and($user->phone)->toBeNull()
+        ->and($user->section_id)->toBeNull();
 });
